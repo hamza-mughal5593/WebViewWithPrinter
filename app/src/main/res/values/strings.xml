@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="main_ver">Version</string>
+    <string name="main_paper_out">Paper out</string>
+    <string name="main_text">Print text</string>
+    <string name="main_barcode">Print barcode</string>
+    <string name="main_qr_code">Print QR code</string>
+    <string name="main_pic">Print bitmap</string>
+    <string name="main_lbl">Print label</string>
+    <string name="main_lbl_learning">Label learning print</string>
+    <string name="main_scan">Scanner</string>
+    <string name="res_not_support">Current printer version is not support</string>
+
+    <string name="result_sent_err">Send error</string>
+    <string name="result_recv_err">Receiver error</string>
+    <string name="result_timeout">communication timeout</string>
+    <string name="result_params_err">Params error</string>
+    <string name="result_unknown_err">Unknown error</string>
+    <string name="result_device_not_conn">Device not connected</string>
+    <string name="result_device_disconnect">Device disconnected</string>
+    <string name="result_conn_err">Device connect error</string>
+    <string name="result_device_connected">Device connected</string>
+    <string name="result_device_not_support">Device not support</string>
+    <string name="result_device_not_found">Device not found</string>
+    <string name="result_device_open_err">Device open error</string>
+    <string name="result_device_no_permission">Device no permission</string>
+    <string name="result_bt_not_open">Bluetooth not open</string>
+    <string name="result_bt_no_location">Location not open</string>
+    <string name="result_bt_no_bonded">No bonded device</string>
+    <string name="result_bt_scan_timeout">Bluetooth scan timeout</string>
+    <string name="result_bt_scan_err">Bluetooth scan error</string>
+    <string name="result_bt_scan_stop">Bluetooth stop scan</string>
+    <string name="result_prn_cover_open">Printer cover open</string>
+    <string name="result_prn_params_err">Printer params error</string>
+    <string name="result_prn_no_paper">Printer no paper</string>
+    <string name="result_prn_overheat">Printer overheat</string>
+    <string name="result_prn_unknown_err">Printer unknown error</string>
+    <string name="result_prn_printing">Printer is printing</string>
+    <string name="result_prn_no_nfc">Printer no NFC</string>
+    <string name="result_nfc_no_paper">Printer NFC no paper</string>
+    <string name="result_prn_low_battery">Printer low battery</string>
+    <string name="result_prn_locate_err">Printer locate error</string>
+    <string name="result_prn_detect_err">Printer label detect error</string>
+    <string name="result_prn_no_detect">Printer label not detected</string>
+    <string name="result_unknown_cmd">Unknown error</string>
+
+    <string name="print_text">I\'ve been living with a shadow overhead\nI\'ve been sleeping with a cloud above my bed\nI\'ve been lonely for so long\nTrapped in the past, I just can\'t seem to move on</string>
+
+
+
+
+
+
+
+
+    <string  name="app_name" translatable="false">Perkchops Tablet</string>
+
+    <!--"Thanks for downloading!" first run dialog-->
+    <string translatable="false" name="first_launch_title">Welcome!</string>
+
+    <string name="default_notification_channel_id" translatable="false">Notification</string>
+
+    <string translatable="false" name="first_launch_message">Thank you for downloading the app!</string>
+
+    <!--Dialog buttons-->
+    <string translatable="false" name="later">Maybe later</string>
+    <string translatable="false" name="no">No</string>
+    <string translatable="false" name="yes">Yes</string>
+
+    <!--"Rate this app" dialog-->
+    <string translatable="false" name="rate_title">Do you like our app?</string>
+    <string translatable="false" name="rate_message">If so, please take a moment to rate this app.</string>
+    <string translatable="false" name="rate">Rate now</string>
+
+    <!--"Rate this app" dialog-->
+    <string translatable="false" name="facebook_title">Connect with us</string>
+    <string translatable="false" name="facebook_message">Become friends on Facebook?</string>
+
+    <!--Offline screen-->
+    <string translatable="false" name="offline_message_1">Connection down?</string>
+    <string translatable="false" name="offline_message_2">WiFi and mobile data are supported.</string>
+    <string translatable="false" name="try_again">Try again</string>
+
+    <!--"No connection" dialog-->
+    <string translatable="false" name="no_connection_title">Connection error</string>
+    <string translatable="false" name="no_connection_message">Please check your internet connection</string>
+    <string translatable="false" name="title_activity_show_web_view">App</string>
+
+    <!--"Do you want to exit this app?" dialog-->
+    <string translatable="false" name="exit_app_dialog">"Do you want to exit this app?"</string>
+
+
+    <!--AdMob IDs-->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>  <!-- Official AdMob Test ID: ca-app-pub-3940256099942544~3347511713-->
+    <string name="banner_footer" translatable="false">ca-app-pub-3940256099942544/6300978111</string>  <!-- Official AdMob Test ID: ca-app-pub-3940256099942544/6300978111-->
+    <string name="interstitial_full_screen" translatable="false">ca-app-pub-3940256099942544/1033173712</string>  <!-- Official AdMob Test ID: ca-app-pub-3940256099942544/1033173712-->
+
+    <!--Facebook Ads IDs-->
+    <string name="facebook_banner_footer" translatable="false">IMG_16_9_APP_INSTALL#YOUR_PLACEMENT_ID</string>  <!-- Official Facebook Banner Ad Test ID: IMG_16_9_APP_INSTALL#YOUR_PLACEMENT_ID-->
+    <string name="facebook_interstitial_full_screen" translatable="false">IMG_16_9_APP_INSTALL#YOUR_PLACEMENT_ID</string>  <!-- Official Facebook Interstitial Fullscreen Ad Test ID: IMG_16_9_APP_INSTALL#YOUR_PLACEMENT_ID-->
+
+    <!--App Links URL scheme-->
+    <string name="deeplinking" translatable="false">WebViewGold</string>
+
+    <string translatable="false" name="local_notification_channel_name">Local channel</string>
+    <string translatable="false" name="local_notification_channel_description">Used to display local notifications</string>
+    <string translatable="false" name="local_notification_channel_id">Local notification</string>
+
+    <string translatable="false" name="msg_subscribed">Subscribed to Firebase push channel topic</string>
+
+    <string translatable="false" name="msg_subscribe_failed">Failed to subscribe to Firebase push channel topic</string>
+
+    <!--Downloader -->
+    <string translatable="false" name="download_noapp">No application can handle this request. Did you install a compatible app?</string>
+
+    <!--Web Authentication (WebAuthn) dialogs-->
+    <string translatable="false" name="username">Username</string>
+    <string translatable="false" name="password">Password</string>
+    <string translatable="false" name="submit">OK</string>
+    <string translatable="false" name="auth_dialogtitle">Login</string>
+    <string translatable="false" name="user_name_required">A username is required</string>
+    <string translatable="false" name="password_name_required">A password is required</string>
+
+
+
+
+
+</resources>
