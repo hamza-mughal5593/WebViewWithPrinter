@@ -185,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final String INDEX_FILE = "file:///android_asset/local-html/index.html";
     private static final int CODE_AUDIO_CHOOSER = 5678;
-    private CustomWebView webView;
+    private WebView webView;
     private WebView mWebviewPop;
     private SharedPreferences preferences;
     private RelativeLayout mContainer;
@@ -240,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        WebView.enableSlowWholeDocumentDraw();
         mContext = this;
         uuid = Settings.System.getString(super.getContentResolver(), Settings.Secure.ANDROID_ID);
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -311,7 +311,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         windowContainer = findViewById(R.id.window_container);
         webView.setLayerType(View.LAYER_TYPE_NONE, null);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
-        webView.setGestureDetector(new GestureDetector(new CustomeGestureDetector()));
+//        webView.setGestureDetector(new GestureDetector(new CustomeGestureDetector()));
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -1814,27 +1814,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void run() {
                             Bitmap bitmap =  ViewCapture.with(webView).getBitmap();
-//                            singleThreadExecutor.submit(new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    try {
-//                                        int ret = printerService.printBitmap(bitmap, 1, 1);
-//                                        showLog("Print bitmap: " + msg(ret));
-//                                        if (ret == 0) {
-//                                            paperOut();
-//                                        }
-//                                    } catch (Exception e) {
-//                                        e.printStackTrace();
-//                                    }
-//                                }
-//                            });
+                            Log.e("34343434", "run: create bitmap" );
+                            singleThreadExecutor.submit(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        int ret = printerService.printBitmap(bitmap, 1, 1);
+                                        showLog("Print bitmap: " + msg(ret));
+                                        if (ret == 0) {
+                                            paperOut();
+                                        }
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            });
                         }
-                    }, 2000);
+                    }, 500);
 
                     final Handler handler2 = new Handler();
                     handler2.postDelayed(new Runnable() {
                         @Override
                         public void run() {
+                            Log.e("34343434", "backpress " );
                             onBackPressed();
                         }
                     }, 5000);

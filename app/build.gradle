@@ -111,6 +111,7 @@ dependencies {
 
 
     implementation 'com.hd.viewcapture:viewcapture:1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
 
 
 
