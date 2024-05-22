@@ -22,7 +22,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
 
-
+android:name=".AppClass"
         android:hardwareAccelerated="true"
 
         android:largeHeap="true"
