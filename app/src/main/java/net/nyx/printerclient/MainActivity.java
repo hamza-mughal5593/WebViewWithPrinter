@@ -38,10 +38,12 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.LabeledIntent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -247,6 +249,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         setContentView(R.layout.activity_main);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         initView();
         bindService();
         registerQscScanReceiver();
@@ -346,7 +351,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         );
 
         offlineLayout = findViewById(R.id.offline_layout);
-        setOfflineScreenBackgroundColor();
 
         this.findViewById(android.R.id.content).setBackgroundColor(getResources().getColor(R.color.launchLoadingSignBackground));
         progressBar = findViewById(R.id.progressBar);
@@ -841,6 +845,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             } else {
                                 connectedNow = false;
                                 offlineLayout.setVisibility(View.VISIBLE);
+                                playBeep();
                                 System.out.println("attempting reconnect");
                                 webView.setVisibility(View.GONE);
 
@@ -865,7 +870,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         timer.schedule(new AutoRec(), 0, 5000);
         //timer.cancel();
     }
+    public void playBeep() {
+        MediaPlayer m = new MediaPlayer();
+        try {
+            if (m.isPlaying()) {
+                m.stop();
+                m.release();
+                m = new MediaPlayer();
+            }
 
+            AssetFileDescriptor descriptor = getAssets().openFd("beepbeep.mp3");
+            m.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+            descriptor.close();
+
+            m.prepare();
+            m.setVolume(1f, 1f);
+            m.setLooping(false);
+            m.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 
 
@@ -1483,6 +1508,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             } else {
                 webView.setVisibility(View.GONE);
                 offlineLayout.setVisibility(View.VISIBLE);
+                playBeep();
             }
         }
 
@@ -2145,6 +2171,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     } else {
                         offlineLayout.setVisibility(View.VISIBLE);
+                        playBeep();
                     }
                     return true;
                 }
@@ -2597,6 +2624,49 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             customTabsIntent.launchUrl(MainActivity.this, Uri.parse(url));
                             webView.stopLoading();
                             return false;
+                        }
+                        @Override
+                        public void onPageFinished(WebView view, String url) {
+//                            toast("tab showen");
+
+                            if (url.contains("print-receipt")){
+                                final Handler handler = new Handler();
+                                handler.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Bitmap bitmap =  ViewCapture.with(newWebView).getBitmap();
+                                        Log.e("34343434", "run: create bitmap" );
+                                        singleThreadExecutor.submit(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                try {
+                                                    int ret = printerService.printBitmap(bitmap, 1, 1);
+                                                    showLog("Print bitmap: " + msg(ret));
+                                                    if (ret == 0) {
+                                                        paperOut();
+                                                    }
+                                                } catch (Exception e) {
+                                                    e.printStackTrace();
+                                                }
+                                            }
+                                        });
+                                    }
+                                }, 500);
+
+                                final Handler handler2 = new Handler();
+                                handler2.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Log.e("34343434", "backpress " );
+                                        onBackPressed();
+                                    }
+                                }, 1000);
+
+
+                            }
+
+
+                            super.onPageFinished(view, url);
                         }
                     });
                 } else {
@@ -3098,9 +3168,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
 
-    private void setOfflineScreenBackgroundColor() {
-        offlineLayout.getBackground().setColorFilter(Color.parseColor(Config.OFFLINE_SCREEN_BACKGROUND_COLOR), PorterDuff.Mode.DARKEN);
-    }
 
     boolean shouldAlwaysOpenInInappTab (String URL) {
         for (int i = 0; i < Config.ALWAYS_OPEN_IN_INAPP_TAB.length; i++) {
