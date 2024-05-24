@@ -1839,7 +1839,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            Bitmap bitmap =  ViewCapture.with(webView).getBitmap();
+                            Bitmap bitmap =  ViewCapture.with(mWebviewPop).getBitmap();
                             Log.e("34343434", "run: create bitmap" );
                             singleThreadExecutor.submit(new Runnable() {
                                 @Override
@@ -1865,7 +1865,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             Log.e("34343434", "backpress " );
                             onBackPressed();
                         }
-                    }, 5000);
+                    }, 1000);
 
 
                 }
