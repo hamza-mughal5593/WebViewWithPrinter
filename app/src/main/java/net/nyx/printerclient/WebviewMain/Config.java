@@ -35,7 +35,7 @@ public class Config {
 
     // Set to (0) to open special links in-app; (1) in a new tab (an additional in-app browser); (2) in another browser
     // NOTE: Special links have a "_blank" target or end with "#"; Overrides EXTERNAL_URL_HANDLING_OPTIONS if the link is also an external link
-    public static final int SPECIAL_LINK_HANDLING_OPTIONS = 0;
+    public static int SPECIAL_LINK_HANDLING_OPTIONS = 0;
 
     // Add URL prefixes that you ALWAYS want to open in an in-app tab (e.g., {"https://www.google.com", "https://www.example.com/page"})
     public static String[] ALWAYS_OPEN_IN_INAPP_TAB = new String[]{"https://www.alwaysopeninaninapptab.com"};
@@ -151,7 +151,7 @@ public class Config {
 
 
     //Allow normal URL clicks to increment SHOW_AD_AFTER_X
-    public static final boolean INCREMENT_WITH_REDIRECTS = true;
+    public static final boolean INCREMENT_WITH_REDIRECTS = false;
 
 
 

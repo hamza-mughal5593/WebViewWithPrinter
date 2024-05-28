@@ -43,6 +43,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
@@ -85,6 +86,7 @@ import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.HttpAuthHandler;
+import android.webkit.JavascriptInterface;
 import android.webkit.JsPromptResult;
 import android.webkit.JsResult;
 import android.webkit.PermissionRequest;
@@ -92,6 +94,7 @@ import android.webkit.SslErrorHandler;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -369,7 +372,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         webView.setWebViewClient(new AdvanceWebViewClient());
         webView.getSettings().setSupportMultipleWindows(true);
         webView.getSettings().setUseWideViewPort(true);
-
+        webView.addJavascriptInterface(new WebAppInterface(), "Android");
         Context appContext = this;
 
         // Collect the App Name to use as the title for Javascript Dialogs
@@ -578,7 +581,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-
+    private class WebAppInterface {
+        @JavascriptInterface
+        public void stopLoading() {
+            runOnUiThread(() -> webView.stopLoading());
+            runOnUiThread(() -> {
+                // Optional: Inform the user
+                Toast.makeText(MainActivity.this, "Loading stopped for this URL.", Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
     private IPrinterService printerService;
     private ServiceConnection connService = new ServiceConnection() {
         @Override
@@ -2566,19 +2578,63 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 return true;
             }
 
+//            if (resultMsg.what == 100){
+//                SPECIAL_LINK_HANDLING_OPTIONS = 1;
+//            }else {
+//                SPECIAL_LINK_HANDLING_OPTIONS = 0;
+//            }
+
             // Open special link in-app
             if (SPECIAL_LINK_HANDLING_OPTIONS == 0) {
 
                 Log.i(TAG, "if ");
 
-                if ((data == null) || (data != null && data.endsWith("#"))) {
+//                if ((data == null) || (data != null && data.endsWith("#"))) {
                     Log.i(TAG, "else true ");
+
+                    AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+
+                    if (audioManager != null) {
+
+
+                        int streamType = AudioManager.STREAM_MUSIC;
+
+
+
+                        if (audioManager.getStreamVolume(streamType) == 0) {
+                            int volumeLevel = 5; // Desired volume level
+
+                            // Set the volume for music stream
+                            audioManager.setStreamVolume(streamType, volumeLevel, AudioManager.FLAG_SHOW_UI);
+                        }
+                    }
                     windowContainer.setVisibility(View.VISIBLE);
                     mWebviewPop = new WebView(view.getContext());
                     webViewSetting(mWebviewPop);
 
                     mWebviewPop.setWebChromeClient(new AdvanceWebChromeClient());
                     mWebviewPop.setWebViewClient(new AdvanceWebViewClient());
+//                mWebviewPop.setWebViewClient(new WebViewClient() {
+//                    @Override
+//                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+//                        Log.d("353535", "New shouldOverrideUrlLoading: " + request.getUrl());
+//                        return super.shouldOverrideUrlLoading(view, request);
+//                    }
+//
+//                    @Override
+//                    public void onPageFinished(WebView view, String url) {
+//                        super.onPageFinished(view, url);
+//                        // Now you can safely get the URL
+//                        Log.d("353535", "New onPageFinished: " + url);
+//                    }
+//
+//                    @Override
+//                    public void onPageStarted(WebView view, String url, Bitmap favicon) {
+//                        Log.d("353535", "New onPageStarted: " + url);
+//                        super.onPageStarted(view, url, favicon);
+//                    }
+//                });
+
                     mWebviewPop.getSettings().setUserAgentString(mWebviewPop.getSettings().getUserAgentString().replace("wv", ""));
                     mContainer.addView(mWebviewPop);
 
@@ -2586,17 +2642,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     transport.setWebView(mWebviewPop);
                     resultMsg.sendToTarget();
                     return true;
-                } else {
-
-                    WebSettings webSettings = webView.getSettings();
-                    webSettings.setJavaScriptEnabled(true);
-                    webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
-                    webSettings.setSupportMultipleWindows(true);
-
-                    if (URLUtil.isValidUrl(data)) {
-                        webView.loadUrl(data);
-                    }
-                }
+//                } else {
+//
+//                    WebSettings webSettings = webView.getSettings();
+//                    webSettings.setJavaScriptEnabled(true);
+//                    webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+//                    webSettings.setSupportMultipleWindows(true);
+//
+//                    if (URLUtil.isValidUrl(data)) {
+//                        if (!data.contains("/order/list"))
+//                            webView.loadUrl(data);
+//                    }
+//                }
 
                 // Open special link in a new in-app tab
             } else if (SPECIAL_LINK_HANDLING_OPTIONS == 1) {
@@ -2624,49 +2681,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             customTabsIntent.launchUrl(MainActivity.this, Uri.parse(url));
                             webView.stopLoading();
                             return false;
-                        }
-                        @Override
-                        public void onPageFinished(WebView view, String url) {
-//                            toast("tab showen");
-
-                            if (url.contains("print-receipt")){
-                                final Handler handler = new Handler();
-                                handler.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        Bitmap bitmap =  ViewCapture.with(newWebView).getBitmap();
-                                        Log.e("34343434", "run: create bitmap" );
-                                        singleThreadExecutor.submit(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                try {
-                                                    int ret = printerService.printBitmap(bitmap, 1, 1);
-                                                    showLog("Print bitmap: " + msg(ret));
-                                                    if (ret == 0) {
-                                                        paperOut();
-                                                    }
-                                                } catch (Exception e) {
-                                                    e.printStackTrace();
-                                                }
-                                            }
-                                        });
-                                    }
-                                }, 500);
-
-                                final Handler handler2 = new Handler();
-                                handler2.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        Log.e("34343434", "backpress " );
-                                        onBackPressed();
-                                    }
-                                }, 1000);
-
-
-                            }
-
-
-                            super.onPageFinished(view, url);
                         }
                     });
                 } else {
