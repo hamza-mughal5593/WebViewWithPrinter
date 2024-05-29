@@ -47,12 +47,12 @@ android:name=".AppClass"
                 android:resource="@xml/file_path" />
         </provider>
 
-        <receiver android:name=".BootReceiver"
-            android:exported="true">
-            <intent-filter >
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-            </intent-filter>
-        </receiver>
+<!--        <receiver android:name=".BootReceiver"-->
+<!--            android:exported="true">-->
+<!--            <intent-filter >-->
+<!--                <action android:name="android.intent.action.BOOT_COMPLETED"/>-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
         <activity android:keepScreenOn="true" android:exported="true" android:name="net.nyx.printerclient.MainActivity">
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />

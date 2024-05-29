@@ -17,7 +17,7 @@ public class BootReceiver extends BroadcastReceiver {
         if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){
             AppClass ctx = (AppClass) context.getApplicationContext();
             // is Kiosk Mode active?
-                wakeUpDevice(ctx);
+//                wakeUpDevice(ctx);
 
         }
     }

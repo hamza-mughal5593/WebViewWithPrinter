@@ -65,6 +65,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
+import android.os.PowerManager;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
@@ -128,6 +129,7 @@ import com.hd.viewcapture.ViewCapture;
 import net.nyx.printerclient.WebviewMain.AlertManager;
 import net.nyx.printerclient.WebviewMain.Config;
 import net.nyx.printerclient.WebviewMain.CustomWebView;
+import net.nyx.printerclient.WebviewMain.NotificationHelper;
 import net.nyx.printerclient.aop.SingleClick;
 import net.nyx.printerservice.print.IPrinterService;
 import net.nyx.printerservice.print.PrintTextFormat;
@@ -240,6 +242,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean persistentScanningMode = false;
     private float previousScreenBrightness;
 
+    private PowerManager.WakeLock wakeLock;
+
+
     @SuppressLint("SetJavaScriptEnabled")
 
     @Override
@@ -252,8 +257,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         setContentView(R.layout.activity_main);
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
 
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Acquire the wake lock to keep the CPU running
+        wakeLock.acquire();
+//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         initView();
         bindService();
@@ -747,6 +756,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onDestroy();
         unbindService();
         unregisterQscReceiver();
+
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
     }
 
 //    @Override
@@ -1816,7 +1829,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
+    private void wakeUpDevice(AppClass context) {
 
+        PowerManager.WakeLock wakeLock = context.getWakeLock(); // get WakeLock reference via AppContext
+        if (wakeLock.isHeld()) {
+            wakeLock.release(); // release old wake lock
+        }
+
+        // create a new wake lock...
+        wakeLock.acquire();
+
+        // ... and release again
+        wakeLock.release();
+    }
     @SuppressWarnings("SpellCheckingInspection")
     private class MyWebViewClient extends WebViewClient {
 
@@ -1879,7 +1904,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     }, 1000);
 
+                    AppClass ctx = (AppClass) getApplicationContext();
+                    wakeUpDevice(ctx);
+                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
 
+                }
+                if (url.contains("json/new-order-received")){
+                    onBackPressed();
+                    AppClass ctx = (AppClass) getApplicationContext();
+                    wakeUpDevice(ctx);
+                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
                 }
 
 
@@ -1907,11 +1941,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                         webView.stopLoading();
 
-
-                        String[] PERMISSIONS = {
-                                Manifest.permission.READ_EXTERNAL_STORAGE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        };
+                        openInInappTab(url);
 
 
                         return true;
@@ -2195,9 +2225,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     startActivity(intent);
                 }
 
-                if (((Config.EXTERNAL_LINK_HANDLING_OPTIONS != 0)
-                        && !(url).startsWith("file://") && (!Config.USE_LOCAL_HTML_FOLDER
-                        || !(url).startsWith("file://"))) && URLUtil.isValidUrl(url)) {
+                if (((Config.EXTERNAL_LINK_HANDLING_OPTIONS != 0) && !(url).startsWith("file://") && (!Config.USE_LOCAL_HTML_FOLDER || !(url).startsWith("file://"))) && URLUtil.isValidUrl(url)) {
                     if (Config.EXTERNAL_LINK_HANDLING_OPTIONS == 1) {
                         // open in a new tab (additional in-app browser)
                         openInInappTab(url);
