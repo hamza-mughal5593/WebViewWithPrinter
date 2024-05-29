@@ -42,7 +42,7 @@
             android:layout_above="@+id/ad_layout"
             android:background="#FE4A4A"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:visibility="visible">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -57,13 +57,14 @@
                     android:src="@drawable/no_net" />
 
                 <Button
+                    android:background="@drawable/trybtn"
                     android:layout_centerHorizontal="true"
                     android:layout_below="@+id/mainimg"
                     android:id="@+id/try_again_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="30dp"
-                    android:text="@string/try_again" />
+                   />
 
                 <ImageView
                     android:layout_marginBottom="20dp"
