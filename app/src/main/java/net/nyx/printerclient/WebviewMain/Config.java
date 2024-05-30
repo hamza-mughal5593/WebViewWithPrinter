@@ -11,6 +11,7 @@ public class Config {
     // Your URL including https:// or http:// prefix and including www. or any required subdomain (e.g., "https://www.example.org")
 //    public static String HOME_URL = "https://dash-act.staging-dot-perkchops-010323.com/";
     public static String HOME_URL = "https://dash-act.staging-dot-perkchops-010323.com/";
+//    public static String HOME_URL = "https://dashboard.staging-dot-perkchops-010323.com";
 
     // Set to "false" to disable the progress spinner/loading spinner
     public static final boolean ACTIVATE_PROGRESS_BAR = true;
