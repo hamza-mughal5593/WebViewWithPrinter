@@ -129,6 +129,7 @@ import com.hd.viewcapture.ViewCapture;
 import net.nyx.printerclient.WebviewMain.AlertManager;
 import net.nyx.printerclient.WebviewMain.Config;
 import net.nyx.printerclient.WebviewMain.CustomWebView;
+import net.nyx.printerclient.WebviewMain.MyForegroundService;
 import net.nyx.printerclient.WebviewMain.NotificationHelper;
 import net.nyx.printerclient.aop.SingleClick;
 import net.nyx.printerservice.print.IPrinterService;
@@ -263,6 +264,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Acquire the wake lock to keep the CPU running
         wakeLock.acquire();
 //        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        Intent serviceIntent = new Intent(this, MyForegroundService.class);
+        startService(serviceIntent);
 
         initView();
         bindService();
@@ -756,7 +760,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onDestroy();
         unbindService();
         unregisterQscReceiver();
-
+        Intent serviceIntent = new Intent(this, MyForegroundService.class);
+        stopService(serviceIntent);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
