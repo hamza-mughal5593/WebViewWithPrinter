@@ -9,9 +9,11 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import net.nyx.printerclient.AppClass;
 import net.nyx.printerclient.R;
 
 public class MyForegroundService extends Service {
@@ -35,11 +37,23 @@ public class MyForegroundService extends Service {
         }
 
         // Acquire WakeLock
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
-        wakeLock.acquire();
-    }
 
+
+
+    }
+    private void wakeUpDevice(AppClass context) {
+
+        PowerManager.WakeLock wakeLock = context.getWakeLock(); // get WakeLock reference via AppContext
+        if (wakeLock.isHeld()) {
+            wakeLock.release(); // release old wake lock
+        }
+
+        // create a new wake lock...
+        wakeLock.acquire();
+
+        // ... and release again
+        wakeLock.release();
+    }
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Intent notificationIntent = new Intent();
@@ -55,6 +69,32 @@ public class MyForegroundService extends Service {
         startForeground(1, notification);
 
         // Do background work here
+
+
+//        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+//        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
+//        wakeLock.acquire();
+
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(180000); // Sleep for 3 minute
+                    Log.d("MyForegroundService", "Task performed!");
+
+                    PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+                    wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
+                    wakeLock.acquire();
+
+//                    AppClass ctx = (AppClass) getApplicationContext();
+//                    wakeUpDevice(ctx);
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
 
         return START_NOT_STICKY;
     }

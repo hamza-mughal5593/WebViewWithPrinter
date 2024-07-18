@@ -2,15 +2,15 @@ apply plugin: 'com.android.application'
 apply plugin: 'android-aspectjx'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
     buildToolsVersion "30.0.3"
     ndkVersion "21.0.6113669"
     defaultConfig {
         applicationId "com.PerkchopsTablet"
         minSdkVersion 21
-        targetSdkVersion 31
-        versionCode 1
-        versionName "1.0.1"
+        targetSdkVersion 33
+        versionCode 4
+        versionName "1.4"
     }
 
     signingConfigs {
@@ -24,17 +24,21 @@ android {
 
     buildTypes {
         release {
-            // 调试模式开关
-            debuggable false
-            jniDebuggable false
-            // 压缩对齐开关
-            zipAlignEnabled true
-            // 移除无用的资源
-            shrinkResources true
-            // 代码混淆开关
-            minifyEnabled true
+//            // 调试模式开关
+//            debuggable false
+//            jniDebuggable false
+//            // 压缩对齐开关
+//            zipAlignEnabled true
+//            // 移除无用的资源
+//            shrinkResources true
+//            // 代码混淆开关
+//            minifyEnabled true
+//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+//            signingConfig signingConfigs.release
+
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+
         }
         debug {
             minifyEnabled false
@@ -112,6 +116,7 @@ dependencies {
 
     implementation 'com.hd.viewcapture:viewcapture:1.4'
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation "androidx.work:work-runtime:2.7.1"
 
 
 

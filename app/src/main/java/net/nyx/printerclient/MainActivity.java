@@ -117,6 +117,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.play.core.appupdate.AppUpdateInfo;
@@ -130,6 +135,7 @@ import net.nyx.printerclient.WebviewMain.AlertManager;
 import net.nyx.printerclient.WebviewMain.Config;
 import net.nyx.printerclient.WebviewMain.CustomWebView;
 import net.nyx.printerclient.WebviewMain.MyForegroundService;
+import net.nyx.printerclient.WebviewMain.MyWorker;
 import net.nyx.printerclient.WebviewMain.NotificationHelper;
 import net.nyx.printerclient.aop.SingleClick;
 import net.nyx.printerservice.print.IPrinterService;
@@ -154,6 +160,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import timber.log.Timber;
 
@@ -258,11 +265,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         setContentView(R.layout.activity_main);
-        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
+
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent();
+            String packageName = getPackageName();
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                startActivity(intent);
+            }
+        }
+
+//        PeriodicWorkRequest periodicWorkRequest = new PeriodicWorkRequest.Builder(
+//                MyWorker.class, 15, TimeUnit.SECONDS)
+//                .build();
+//
+//        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+//                "MyPeriodicWork",
+//                ExistingPeriodicWorkPolicy.REPLACE,
+//                periodicWorkRequest
+//        );
+
+
+//        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+//        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
 
         // Acquire the wake lock to keep the CPU running
-        wakeLock.acquire();
+//        wakeLock.acquire();
 //        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         Intent serviceIntent = new Intent(this, MyForegroundService.class);
@@ -1911,14 +1943,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                     AppClass ctx = (AppClass) getApplicationContext();
                     wakeUpDevice(ctx);
-                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
+//                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
 
                 }
                 if (url.contains("json/new-order-received")){
                     onBackPressed();
                     AppClass ctx = (AppClass) getApplicationContext();
                     wakeUpDevice(ctx);
-                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
+//                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
                 }
 
 

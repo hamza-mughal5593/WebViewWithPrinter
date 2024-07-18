@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.PowerManager;
 
+import androidx.work.Configuration;
+import androidx.work.WorkManager;
+
 public class AppClass extends Application {
 
     private AppClass instance;
