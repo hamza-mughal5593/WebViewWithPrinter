@@ -24,7 +24,7 @@
     <application
 
 android:name=".AppClass"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
 
         android:largeHeap="true"
 

@@ -9,7 +9,8 @@ public class Config {
     public static final String HOST = "www.example.org";
 
     // Your URL including https:// or http:// prefix and including www. or any required subdomain (e.g., "https://www.example.org")
-    public static String HOME_URL = "https://perkchopsdashboard.com/";
+    public static String HOME_URL = "https://dash-act.staging-dot-perkchops-010323.com";
+//    public static String HOME_URL = "https://perkchopsdashboard.com/";
 //    public static String HOME_URL = "https://dashboard.staging-dot-perkchops-010323.com/";
 
     // Set to "false" to disable the progress spinner/loading spinner
@@ -129,9 +130,9 @@ public class Config {
     /**
      * Dialog Options
      */
-    public static boolean SHOW_FIRSTRUN_DIALOG = true; //Set to false to disable the First Run Dialog
+    public static boolean SHOW_FIRSTRUN_DIALOG = false; //Set to false to disable the First Run Dialog
     public static boolean SHOW_FACEBOOK_DIALOG = false; //Set to false to disable the Follow On Facebook Dialog
-    public static boolean SHOW_RATE_DIALOG = true; //Set to false to disable the Rate This App Dialog
+    public static boolean SHOW_RATE_DIALOG = false; //Set to false to disable the Rate This App Dialog
 
     // Set the minimum number of days to be passed after the application is installed before the "Rate this app" dialog is displayed
     public static final int RATE_DAYS_UNTIL_PROMPT = 3;

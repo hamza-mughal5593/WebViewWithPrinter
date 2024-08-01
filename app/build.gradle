@@ -2,15 +2,15 @@ apply plugin: 'com.android.application'
 apply plugin: 'android-aspectjx'
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion 34
     buildToolsVersion "30.0.3"
     ndkVersion "21.0.6113669"
     defaultConfig {
         applicationId "com.PerkchopsTablet"
         minSdkVersion 21
-        targetSdkVersion 33
-        versionCode 4
-        versionName "1.4"
+        targetSdkVersion 34
+        versionCode 5
+        versionName "1.5"
     }
 
     signingConfigs {
@@ -24,17 +24,6 @@ android {
 
     buildTypes {
         release {
-//            // 调试模式开关
-//            debuggable false
-//            jniDebuggable false
-//            // 压缩对齐开关
-//            zipAlignEnabled true
-//            // 移除无用的资源
-//            shrinkResources true
-//            // 代码混淆开关
-//            minifyEnabled true
-//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-//            signingConfig signingConfigs.release
 
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -46,23 +35,18 @@ android {
         }
     }
 
-    // 设置存放 so 文件的目录
     sourceSets {
         main {
             jniLibs.srcDirs = ['libs']
         }
     }
 
-    // 支持 Java JDK 8
     compileOptions {
         targetCompatibility JavaVersion.VERSION_1_8
         sourceCompatibility JavaVersion.VERSION_1_8
     }
-    // 代码警告配置
     lintOptions {
-        // 禁用文本硬编码警告
         disable 'HardcodedText'
-        // 禁用图片描述警告
         disable 'ContentDescription'
     }
 
@@ -83,7 +67,6 @@ android {
 }
 
 dependencies {
-    // 依赖 libs 目录下所有的 jar 和 aar 包
     implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'

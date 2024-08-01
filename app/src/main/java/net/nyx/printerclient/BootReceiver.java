@@ -13,7 +13,7 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
 
 
-        Toast.makeText(context, "Please unlock", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(context, "Please unlock", Toast.LENGTH_SHORT).show();
         if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){
             AppClass ctx = (AppClass) context.getApplicationContext();
             // is Kiosk Mode active?
