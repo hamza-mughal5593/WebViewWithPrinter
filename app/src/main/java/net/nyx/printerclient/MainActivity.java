@@ -1,6 +1,7 @@
 package net.nyx.printerclient;
 
 
+import static net.nyx.printerclient.AppClass.isInBackground;
 import static net.nyx.printerclient.Result.msg;
 import static net.nyx.printerclient.WebviewMain.Config.ACTIVATE_PROGRESS_BAR;
 import static net.nyx.printerclient.WebviewMain.Config.ENABLE_PULL_REFRESH;
@@ -13,6 +14,7 @@ import static net.nyx.printerclient.WebviewMain.Config.INCREMENT_WITH_REDIRECTS;
 import static net.nyx.printerclient.WebviewMain.Config.MAX_TEXT_ZOOM;
 import static net.nyx.printerclient.WebviewMain.Config.SPECIAL_LINK_HANDLING_OPTIONS;
 import static net.nyx.printerclient.WebviewMain.Config.downloadableExtension;
+import static net.nyx.printerclient.WebviewMain.adminApp.NotificationUtils.mediaPlayer;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -22,6 +24,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.admin.DevicePolicyManager;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -110,18 +113,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
-import androidx.work.Worker;
-import androidx.work.WorkerParameters;
+import androidx.work.WorkRequest;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.play.core.appupdate.AppUpdateInfo;
@@ -133,10 +135,9 @@ import com.hd.viewcapture.ViewCapture;
 
 import net.nyx.printerclient.WebviewMain.AlertManager;
 import net.nyx.printerclient.WebviewMain.Config;
-import net.nyx.printerclient.WebviewMain.CustomWebView;
 import net.nyx.printerclient.WebviewMain.MyForegroundService;
-import net.nyx.printerclient.WebviewMain.MyWorker;
-import net.nyx.printerclient.WebviewMain.NotificationHelper;
+import net.nyx.printerclient.WebviewMain.adminApp.RestartReceiver;
+import net.nyx.printerclient.WebviewMain.adminApp.WebViewRefreshWorker;
 import net.nyx.printerclient.aop.SingleClick;
 import net.nyx.printerservice.print.IPrinterService;
 import net.nyx.printerservice.print.PrintTextFormat;
@@ -153,6 +154,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -163,6 +165,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import timber.log.Timber;
+import androidx.work.ExistingPeriodicWorkPolicy;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -175,7 +178,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected Button btnScan;
     protected TextView tvLog;
 
-    private static final int RC_SCAN = 0x99;
     public static String PRN_TEXT;
     protected Button btn4;
     protected Button btnLbl;
@@ -185,14 +187,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Handler handler = new Handler();
     String[] version = new String[1];
 
-
-
-
-
-
-
     // from webview
-
 
 
     public static final String WRITE_SUCCESS = "Text written to the NFC tag successfully!";
@@ -229,32 +224,184 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean isRedirected = false;
 
 
-    static long TimeStamp = 0;
     private static boolean connectedNow = false;
 
 
     private Tag myTag;
-    private boolean NFCenabled = false;
     private boolean readModeNFC = false;
     private boolean writeModeNFC = false;
     private String textToWriteNFC = "";
     public static final String USER_AGENT_GOOGLE = "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.101 Mobile Safari/537.36";
     public static final String USER_AGENT_FB = "Mozilla/5.0 (Linux; U; Android 2.2) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1";
 
-    // Manual Cookie Sync
-    private final Handler cookieSyncHandler = new Handler();
-    private Runnable cookieSyncRunnable;
+
 
     // Scanning Mode
     private boolean scanningModeOn = false;
     private boolean persistentScanningMode = false;
     private float previousScreenBrightness;
 
-    private PowerManager.WakeLock wakeLock;
 
+
+//    MyForegroundService myService;
+//    boolean isBound = false;
+//
+//    private ServiceConnection connection = new ServiceConnection() {
+//        @Override
+//        public void onServiceConnected(ComponentName name, IBinder service) {
+//            MyForegroundService.LocalBinder binder = (MyForegroundService.LocalBinder) service;
+//            myService = binder.getService();
+//            isBound = true;
+//        }
+//
+//        @Override
+//        public void onServiceDisconnected(ComponentName name) {
+//            isBound = false;
+//        }
+//    };
+
+    private void shownotification() {
+//        Intent intent2 = new Intent(this, MyForegroundService.class);
+//        bindService(intent2, connection, Context.BIND_AUTO_CREATE);
+        Intent serviceIntent = new Intent(this, MyForegroundService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        }
+
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
+        if (requestCode == 333) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, show the notification
+                shownotification();
+            } else {
+                // Permission denied, handle accordingly
+                Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+
+    private DevicePolicyManager devicePolicyManager;
+    private ComponentName componentName;
+    private void enableDeviceAdmin() {
+        Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName);
+        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Grant permissions to enable Kiosk Mode.");
+        startActivityForResult(intent, 1);
+    }
+
+    // Start Lock Task Mode
+    private void startLockTaskMode() {
+        if (devicePolicyManager.isDeviceOwnerApp(getPackageName())) {
+            devicePolicyManager.setLockTaskPackages(componentName, new String[]{getPackageName()});
+        }
+        startLockTask();
+    }
+
+    // Stop Lock Task Mode
+    public void stopLockTaskMode(View view) {
+        stopLockTask();
+    }
+
+
+    // BroadcastReceiver to refresh WebView when WorkManager triggers it
+    private final BroadcastReceiver refreshReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (webView != null) {
+                webView.reload(); // 🔄 Refresh the WebView
+//                Toast.makeText(MainActivity.this, "Page Refreshed", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+    private void scheduleDailyWork() {
+        WorkManager workManager = WorkManager.getInstance(getApplicationContext());
+
+        // Calculate delay until 6:30 PM
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 3); // 3:00 AM
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+
+        long currentTime = System.currentTimeMillis();
+        long scheduledTime = calendar.getTimeInMillis();
+        if (scheduledTime <= currentTime) {
+            // If the time has already passed today, schedule for tomorrow
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+            scheduledTime = calendar.getTimeInMillis();
+        }
+
+        long initialDelay = scheduledTime - currentTime;
+
+        OneTimeWorkRequest dailyWorkRequest = new OneTimeWorkRequest.Builder(WebViewRefreshWorker.class)
+                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+                .build();
+
+        workManager.enqueueUniqueWork(
+                "daily_webview_refresh",
+                ExistingWorkPolicy.REPLACE, // Replace any existing work with the same name
+                dailyWorkRequest
+        );
+    }
+
+    private final Handler handler2 = new Handler(Looper.getMainLooper());
+
+    private final Runnable cacheCleaner = new Runnable() {
+        @Override
+        public void run() {
+            clearWebViewCache();
+            clearAppCache();
+            handler2.postDelayed(this, 60 * 60 * 1000); // Run every 1 hour
+        }
+    };
+    private void clearWebViewCache() {
+        if (webView != null) {
+            webView.clearCache(true);
+            webView.clearHistory();
+        }
+    }
+    private void clearAppCache() {
+        try {
+            File cacheDir = getCacheDir();
+            deleteDir(cacheDir);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            if (children != null) {
+                for (String child : children) {
+                    boolean success = deleteDir(new File(dir, child));
+                    if (!success) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return dir.delete();
+    }
+    private void startCacheCleaner() {
+        handler.postDelayed(cacheCleaner, 60 * 60 * 1000); // Start after 1 hour
+    }
+
+    public void stopBeep() {
+        if (mediaPlayer != null) {
+            if (mediaPlayer.isPlaying()) {
+                mediaPlayer.stop(); // Stop playback
+            }
+            mediaPlayer.release(); // Release resources
+            mediaPlayer = null; // Reset the MediaPlayer instance
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -262,10 +409,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mContext = this;
         uuid = Settings.System.getString(super.getContentResolver(), Settings.Secure.ANDROID_ID);
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
-
+        stopBeep();
 
         setContentView(R.layout.activity_main);
+        scheduleDailyWork();
 
+//        devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+//        componentName = new ComponentName(this, MyDeviceAdminReceiver.class);
+//        if (!devicePolicyManager.isAdminActive(componentName)) {
+//            enableDeviceAdmin();
+//        } else {
+//            startLockTaskMode();
+//        }
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, "KioskApp::WakeLock");
+        wakeLock.acquire();
+
+        startCacheCleaner();
+
+
+// Check if the notification permission is granted
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                // Request the permission
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        333
+                );
+            } else {
+                // Permission already granted, proceed with showing the notification
+                shownotification();
+            }
+        } else {
+            shownotification();
+        }
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -279,34 +459,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-//        PeriodicWorkRequest periodicWorkRequest = new PeriodicWorkRequest.Builder(
-//                MyWorker.class, 15, TimeUnit.SECONDS)
-//                .build();
-//
-//        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-//                "MyPeriodicWork",
-//                ExistingPeriodicWorkPolicy.REPLACE,
-//                periodicWorkRequest
-//        );
 
 
-//        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
-//        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::MyWakelockTag");
-
-        // Acquire the wake lock to keep the CPU running
-//        wakeLock.acquire();
-//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        Intent serviceIntent = new Intent(this, MyForegroundService.class);
-        startService(serviceIntent);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         initView();
         bindService();
         registerQscScanReceiver();
         Timber.plant(new Timber.DebugTree());
         PRN_TEXT = getString(R.string.print_text);
-
-
 
 
         // from webview
@@ -346,17 +507,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
 
-
-
-
         if (savedInstanceState == null) {
             AlertManager.appLaunched(this);
         }
-
-
-
-
-
 
 
         webView = findViewById(R.id.webView);
@@ -377,11 +530,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         }
 
-        if(HIDE_VERTICAL_SCROLLBAR){
-            webView.setVerticalScrollBarEnabled(false);
+        if (HIDE_VERTICAL_SCROLLBAR) {
+            webView.setVerticalScrollBarEnabled(HIDE_VERTICAL_SCROLLBAR);
         }
-        if(HIDE_HORIZONTAL_SCROLLBAR){
-            webView.setHorizontalScrollBarEnabled(false);
+        if (HIDE_HORIZONTAL_SCROLLBAR) {
+            webView.setHorizontalScrollBarEnabled(HIDE_HORIZONTAL_SCROLLBAR);
         }
 
         mySwipeRefreshLayout.setOnRefreshListener(
@@ -636,6 +789,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             });
         }
     }
+
     private IPrinterService printerService;
     private ServiceConnection connService = new ServiceConnection() {
         @Override
@@ -705,7 +859,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void registerQscScanReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction("com.android.NYX_QSC_DATA");
-        registerReceiver(qscReceiver, filter);
+//        registerReceiver(qscReceiver, filter);
     }
 
     private void unregisterQscReceiver() {
@@ -761,7 +915,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
     private void printBitmap() {
         singleThreadExecutor.submit(new Runnable() {
             @Override
@@ -780,23 +933,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
-
-
-
-
-
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         unbindService();
-        unregisterQscReceiver();
-        Intent serviceIntent = new Intent(this, MyForegroundService.class);
-        stopService(serviceIntent);
-        if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
+//        unregisterQscReceiver();
+
+
+//        if (isBound) {
+//            unbindService(connection);
+//            isBound = false;
+//        }
+        handler2.removeCallbacks(cacheCleaner); // Stop the periodic cache cleaning
+
+        Log.e("343434", "onDestroy: ");
+//        Intent broadcastIntent = new Intent(this, RestartReceiver.class);
+//        sendBroadcast(broadcastIntent);
+
+
+
+
+//        Intent restartIntent = new Intent(getApplicationContext(), MainActivity.class);
+//        startActivity(restartIntent);
+//        PendingIntent pendingIntent = PendingIntent.getActivity(
+//                this, 0, restartIntent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+//
+//        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+//        long triggerTime = System.currentTimeMillis() + 1000; // Restart after 5 seconds
+//        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
     }
 
 //    @Override
@@ -860,15 +1024,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
-
-
     // from webview
-
-
-
-
-
 
 
     private void openInExternalBrowser(String launchUrl) {
@@ -887,7 +1043,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(external);
         }
     }
-
 
 
     private void checkInternetConnection() {
@@ -955,8 +1110,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
-
     private void loadLocal(String path) {
         webView.loadUrl(path);
     }
@@ -977,6 +1130,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
+
+        if (requestCode == 123) {
+            isInBackground = true;
+            if (Settings.canDrawOverlays(this)) {
+                // Permission granted
+                Log.d("OverlayPermission", "Permission granted");
+            } else {
+                // Permission denied
+                Log.d("OverlayPermission", "Permission denied");
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if (requestCode == REQUEST_SELECT_FILE) {
@@ -1094,7 +1258,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void loadQRCodeURL(String url) {
-        switch(Config.QR_CODE_URL_OPTIONS) {
+        switch (Config.QR_CODE_URL_OPTIONS) {
 
             // Option 1: load in an in-app tab
             case 1:
@@ -1167,18 +1331,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ClosePopupWindow(mWebviewPop);
         } else if (Config.EXIT_APP_BY_BACK_BUTTON_ALWAYS) {
             if (EXIT_APP_DIALOG) {
+                finishAffinity();
 //                ExitDialog();
             } else {
-                super.onBackPressed();
+                finishAffinity();
             }
         } else if (webView.canGoBack()) {
             webView.goBack();
         } else if (Config.EXIT_APP_BY_BACK_BUTTON_HOMEPAGE) {
-            if (EXIT_APP_DIALOG) {
-//                ExitDialog();
-            } else {
-                super.onBackPressed();
-            }
+
+                finishAffinity();
+
         }
     }
 
@@ -1295,7 +1458,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
-
 
 
     private static final int REQUEST_NOTIFICATION = 11;
@@ -1455,11 +1617,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
-
-
-
-
     @Override
     public void onStop() {
 
@@ -1473,10 +1630,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            CookieManager.getInstance().flush();
 //        }
 
-
         super.onStop();
     }
-
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Unregister the receiver to prevent memory leaks
+        unregisterReceiver(refreshReceiver);
+    }
     @Override
     public void onResume() {
 
@@ -1518,11 +1679,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //
 //            // Ensures consistent timing
 //        }
-        inAppUpdateTranslator();
+        // Register the receiver to listen for refresh events
+        IntentFilter filter = new IntentFilter("REFRESH_WEBVIEW");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(refreshReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(refreshReceiver, filter);
+        }
+//        registerReceiver(refreshReceiver, filter);
+
+//        if (!Settings.canDrawOverlays(this)) {
+//            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+//                    Uri.parse("package:" + getPackageName()));
+//            startActivityForResult(intent, 123);
+//            isInBackground = false;
+//        }
+
         super.onResume();
-
-
+        inAppUpdateTranslator();
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
+
     private void inAppUpdateTranslator() {
         AppUpdateManager appUpdateManagerForTrans = AppUpdateManagerFactory.create(MainActivity.this);
         Task<AppUpdateInfo> appUpdateInfoTaskForTrans = appUpdateManagerForTrans.getAppUpdateInfo();
@@ -1541,11 +1722,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
     }
-
-
-
-
-
 
 
     private Handler notificationHandler;
@@ -1576,10 +1752,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-            if (Config.BLOCK_SELF_SIGNED_AND_FAULTY_SSL_CERTS){
+            if (Config.BLOCK_SELF_SIGNED_AND_FAULTY_SSL_CERTS) {
                 handler.cancel();
-            }
-            else{
+            } else {
                 handler.proceed();
             }
         }
@@ -1685,8 +1860,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         stopProductRecommNotification();
                     }
                     return true;
-                }
-                else{
+                } else {
                     stopNotification();
                     return true;
                 }
@@ -1704,8 +1878,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         sendProductRecommNotification(url);
                     }
                     return true;
-                }
-                else {
+                } else {
 
                     return true;
                 }
@@ -1866,19 +2039,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
-    private void wakeUpDevice(AppClass context) {
 
-        PowerManager.WakeLock wakeLock = context.getWakeLock(); // get WakeLock reference via AppContext
-        if (wakeLock.isHeld()) {
-            wakeLock.release(); // release old wake lock
-        }
 
-        // create a new wake lock...
-        wakeLock.acquire();
-
-        // ... and release again
-        wakeLock.release();
-    }
     @SuppressWarnings("SpellCheckingInspection")
     private class MyWebViewClient extends WebViewClient {
 
@@ -1895,6 +2057,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void onPageFinished(WebView view, String url) {
+            inAppUpdateTranslator();
+            Log.d("23232323", "Page Loaded: " + url);
+            if (url.contains("users/login")){
+                isInBackground = false;
+            }else {
+                isInBackground = true;
+            }
+
             if (!isRedirected) {
                 setTitle(view.getTitle());
                 customCSS();
@@ -1908,13 +2078,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     view.loadUrl(disableLinkDragScript);
                 }
 
-                if (url.contains("print-receipt")){
+                if (url.contains("print-receipt")) {
                     final Handler handler = new Handler();
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            Bitmap bitmap =  ViewCapture.with(mWebviewPop).getBitmap();
-                            Log.e("34343434", "run: create bitmap" );
+                            Bitmap bitmap = ViewCapture.with(mWebviewPop).getBitmap();
+                            Log.e("34343434", "run: create bitmap");
                             singleThreadExecutor.submit(new Runnable() {
                                 @Override
                                 public void run() {
@@ -1936,28 +2106,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     handler2.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            Log.e("34343434", "backpress " );
+                            Log.e("34343434", "backpress ");
                             onBackPressed();
                         }
                     }, 1000);
 
-                    AppClass ctx = (AppClass) getApplicationContext();
-                    wakeUpDevice(ctx);
+                    Log.d("MyForegroundService", "Task new order screen on!");
+
 //                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
 
                 }
-                if (url.contains("json/new-order-received")){
+                if (url.contains("json/new-order-received")) {
                     onBackPressed();
-                    AppClass ctx = (AppClass) getApplicationContext();
-                    wakeUpDevice(ctx);
-//                    NotificationHelper.showNotification(MainActivity.this, "New Order", "Click To View New Order.");
                 }
 
-
-//                if (SPLASH_SCREEN_ACTIVATED && SPLASH_SCREEN_ACTIVE && (SplashScreen.getInstance() != null) && REMAIN_SPLASH_OPTION) {
-//                    SplashScreen.getInstance().finish();
-//                    SPLASH_SCREEN_ACTIVE = false;
-//                }
                 super.onPageFinished(view, url);
             }
         }
@@ -2031,13 +2193,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 stopProductRecommNotification();
                             }
                             return true;
-                        }
-                        else{
+                        } else {
                             stopNotification();
                             return true;
                         }
-                    }
-                    else if (url.contains("push.send")) {
+                    } else if (url.contains("push.send")) {
                         if (Config.USER_AGENT.contains("VRGl")) {
                             if (url.contains("cartreminderpush.send")) {
                                 sendCartReminderNotification(url);
@@ -2049,12 +2209,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 sendProductRecommNotification(url);
                             }
                             return true;
-                        }
-                        else {
+                        } else {
                             sendNotification(url);
                             return true;
                         }
-                    }  else if (url.startsWith("get-uuid://")) {
+                    } else if (url.startsWith("get-uuid://")) {
                         webView.loadUrl("javascript: var uuid = '" + uuid + "';");
                         return true;
                     } else if (url.startsWith("reset://")) {
@@ -2107,7 +2266,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                         return true;
 
-                    }  else if (url.startsWith("getfirebaseplayerid://")) {
+                    } else if (url.startsWith("getfirebaseplayerid://")) {
 
                         String firebaseUserId = AlertManager.getFirebaseToken(MainActivity.this, "");
                         webView.loadUrl("javascript: var firebaseplayerid = '" + firebaseUserId + "';");
@@ -2173,8 +2332,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         startActivity(chooser);
 
                         return true;
-                    }
-                    else if (url.startsWith("statusbarcolor://") && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)) {
+                    } else if (url.startsWith("statusbarcolor://") && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)) {
 
                         String input = url.substring(url.indexOf('/') + 2);
                         String[] values = input.split(",");
@@ -2332,7 +2490,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         String urlToOpen = null;
         // if data has length greater then 2 then there should be URL at index 2
-        if(contentDetails.length > 2) {
+        if (contentDetails.length > 2) {
             urlToOpen = contentDetails[2].replaceAll("%20", " ");
         }
 
@@ -2349,7 +2507,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void sendCartReminderNotification(String url) {
-
 
 
         final int secondsDelayed = Integer.parseInt(url.split("=")[1]);
@@ -2390,6 +2547,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             CartRemindernotificationHandler = null;
         }, secondsDelayed * 1000);
     }
+
     private void sendCategoryRecommNotification(String url) {
 
 
@@ -2432,6 +2590,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             CategoryRecommNotificationHandler = null;
         }, secondsDelayed * 1000);
     }
+
     private void sendProductRecommNotification(String url) {
         final int secondsDelayed = Integer.parseInt(url.split("=")[1]);
 
@@ -2476,18 +2635,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             notificationHandler = null;
         }
     }
+
     private void stopCartReminderNotification() {
         if (CartRemindernotificationHandler != null) {
             CartRemindernotificationHandler.removeCallbacksAndMessages(null);
             CartRemindernotificationHandler = null;
         }
     }
+
     private void stopCategoryRecommNotification() {
         if (CategoryRecommNotificationHandler != null) {
             CategoryRecommNotificationHandler.removeCallbacksAndMessages(null);
             CategoryRecommNotificationHandler = null;
         }
     }
+
     private void stopProductRecommNotification() {
         if (ProductRecommNotificationHandler != null) {
             ProductRecommNotificationHandler.removeCallbacksAndMessages(null);
@@ -2540,7 +2702,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             notificationManager.createNotificationChannel(channel);
         }
     }
-
 
 
     private class CustomeGestureDetector extends GestureDetector.SimpleOnGestureListener {
@@ -2655,30 +2816,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.i(TAG, "if ");
 
 //                if ((data == null) || (data != null && data.endsWith("#"))) {
-                    Log.i(TAG, "else true ");
+                Log.i(TAG, "else true ");
 
-                    AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
-                    if (audioManager != null) {
-
-
-                        int streamType = AudioManager.STREAM_MUSIC;
+                if (audioManager != null) {
 
 
+                    int streamType = AudioManager.STREAM_MUSIC;
 
-                        if (audioManager.getStreamVolume(streamType) == 0) {
-                            int volumeLevel = 5; // Desired volume level
 
-                            // Set the volume for music stream
-                            audioManager.setStreamVolume(streamType, volumeLevel, AudioManager.FLAG_SHOW_UI);
-                        }
+                    if (audioManager.getStreamVolume(streamType) == 0) {
+                        int volumeLevel = 5; // Desired volume level
+
+                        // Set the volume for music stream
+                        audioManager.setStreamVolume(streamType, volumeLevel, AudioManager.FLAG_SHOW_UI);
                     }
-                    windowContainer.setVisibility(View.VISIBLE);
-                    mWebviewPop = new WebView(view.getContext());
-                    webViewSetting(mWebviewPop);
+                }
+                windowContainer.setVisibility(View.VISIBLE);
+                mWebviewPop = new WebView(view.getContext());
+                webViewSetting(mWebviewPop);
 
-                    mWebviewPop.setWebChromeClient(new AdvanceWebChromeClient());
-                    mWebviewPop.setWebViewClient(new AdvanceWebViewClient());
+                mWebviewPop.setWebChromeClient(new AdvanceWebChromeClient());
+                mWebviewPop.setWebViewClient(new AdvanceWebViewClient());
 //                mWebviewPop.setWebViewClient(new WebViewClient() {
 //                    @Override
 //                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -2700,13 +2860,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                    }
 //                });
 
-                    mWebviewPop.getSettings().setUserAgentString(mWebviewPop.getSettings().getUserAgentString().replace("wv", ""));
-                    mContainer.addView(mWebviewPop);
+                mWebviewPop.getSettings().setUserAgentString(mWebviewPop.getSettings().getUserAgentString().replace("wv", ""));
+                mContainer.addView(mWebviewPop);
 
-                    WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                    transport.setWebView(mWebviewPop);
-                    resultMsg.sendToTarget();
-                    return true;
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                transport.setWebView(mWebviewPop);
+                resultMsg.sendToTarget();
+                return true;
 //                } else {
 //
 //                    WebSettings webSettings = webView.getSettings();
@@ -3031,11 +3191,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             webSettings.setUserAgentString(webSettings.getUserAgentString().replace("wv", ""));
         }
 
-
+        if (HIDE_VERTICAL_SCROLLBAR) {
+            intWebView.setVerticalScrollBarEnabled(HIDE_VERTICAL_SCROLLBAR);
+        }
+        if (HIDE_HORIZONTAL_SCROLLBAR) {
+            intWebView.setHorizontalScrollBarEnabled(HIDE_HORIZONTAL_SCROLLBAR);
+        }
     }
 
     // nfc
-
 
 
     private void readFromIntent(Intent intent) {
@@ -3246,9 +3410,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
-
-
-    boolean shouldAlwaysOpenInInappTab (String URL) {
+    boolean shouldAlwaysOpenInInappTab(String URL) {
         for (int i = 0; i < Config.ALWAYS_OPEN_IN_INAPP_TAB.length; i++) {
             if ((Config.ALWAYS_OPEN_IN_INAPP_TAB[i] != "") && (URL.startsWith(Config.ALWAYS_OPEN_IN_INAPP_TAB[i]))) {
                 return true;
@@ -3278,15 +3440,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         startActivity(i);
     }
-
-
-
-
-
-
-
-
-
 
 
 }

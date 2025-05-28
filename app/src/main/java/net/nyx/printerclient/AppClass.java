@@ -9,25 +9,22 @@ import android.os.PowerManager;
 import androidx.work.Configuration;
 import androidx.work.WorkManager;
 
+import net.nyx.printerclient.WebviewMain.CacheClearScheduler;
+import net.nyx.printerclient.WebviewMain.adminApp.NotificationUtils;
+
 public class AppClass extends Application {
 
-    private AppClass instance;
+    public static Boolean isInBackground = true;
     private PowerManager.WakeLock wakeLock;
     private BootReceiver onScreenOffReceiver;
-
     @Override
     public void onCreate() {
         super.onCreate();
-        instance = this;
-        registerKioskModeScreenOffReceiver();
-    }
-    private void registerKioskModeScreenOffReceiver() {
-        // register screen off receiver
+        CacheClearScheduler.scheduleDailyCacheClearance(this);
         final IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
         onScreenOffReceiver = new BootReceiver();
         registerReceiver(onScreenOffReceiver, filter);
     }
-
     public PowerManager.WakeLock getWakeLock() {
         if(wakeLock == null) {
             // lazy loading: first call, create wakeLock via PowerManager.
@@ -36,4 +33,6 @@ public class AppClass extends Application {
         }
         return wakeLock;
     }
+
+
 }

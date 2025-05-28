@@ -1,6 +1,5 @@
 package net.nyx.printerclient.WebviewMain;
 
-import static net.nyx.printerclient.WebviewMain.Config.SHOW_FIRSTRUN_DIALOG;
 import static net.nyx.printerclient.WebviewMain.Config.SHOW_RATE_DIALOG;
 
 import android.content.ActivityNotFoundException;
@@ -41,9 +40,7 @@ public class AlertManager {
         if (firstLaunchDate == 0) {
             firstLaunchDate = System.currentTimeMillis();
             editor.putLong(STRING_FIRST_LAUNCH_DATE, firstLaunchDate);
-            if (SHOW_FIRSTRUN_DIALOG) {
-                showFirstLaunchDialog(context);
-            }
+
 
         }
 
@@ -86,15 +83,6 @@ public class AlertManager {
         return prefs.getString("FirebaseToken", defValue);
     }
 
-
-    private static void showFirstLaunchDialog(final Context context) {
-        new androidx.appcompat.app.AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Light_Dialog_NoActionBar)
-                .setTitle(R.string.first_launch_title)
-                .setMessage(R.string.first_launch_message)
-                .setPositiveButton(android.R.string.ok, null)
-                .create()
-                .show();
-    }
 
     private static void showRateDialog(final Context context){
         final Resources resources = context.getResources();

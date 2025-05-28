@@ -7,21 +7,22 @@ import android.os.PowerManager;
 import android.widget.Toast;
 
 public class BootReceiver extends BroadcastReceiver {
-    private static final String PREF_KIOSK_MODE = "pref_kiosk_mode";
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
+            Intent launchIntent = new Intent(context, MainActivity.class);
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(launchIntent);
+        }
 
-
-//        Toast.makeText(context, "Please unlock", Toast.LENGTH_SHORT).show();
         if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){
             AppClass ctx = (AppClass) context.getApplicationContext();
-            // is Kiosk Mode active?
-//                wakeUpDevice(ctx);
+//             is Kiosk Mode active?
+                wakeUpDevice(ctx);
 
         }
     }
-
     private void wakeUpDevice(AppClass context) {
 
         PowerManager.WakeLock wakeLock = context.getWakeLock(); // get WakeLock reference via AppContext
