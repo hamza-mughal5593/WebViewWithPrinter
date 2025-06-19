@@ -131,14 +131,14 @@ import com.google.android.play.core.appupdate.AppUpdateManager;
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
 import com.google.android.play.core.install.model.AppUpdateType;
 import com.google.android.play.core.install.model.UpdateAvailability;
-import com.hd.viewcapture.ViewCapture;
+//import com.hd.viewcapture.ViewCapture;
 
 import net.nyx.printerclient.WebviewMain.AlertManager;
 import net.nyx.printerclient.WebviewMain.Config;
 import net.nyx.printerclient.WebviewMain.MyForegroundService;
 import net.nyx.printerclient.WebviewMain.adminApp.RestartReceiver;
 import net.nyx.printerclient.WebviewMain.adminApp.WebViewRefreshWorker;
-import net.nyx.printerclient.aop.SingleClick;
+//import net.nyx.printerclient.aop.SingleClick;
 import net.nyx.printerservice.print.IPrinterService;
 import net.nyx.printerservice.print.PrintTextFormat;
 
@@ -820,7 +820,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         unbindService(connService);
     }
 
-    @SingleClick
+//    @SingleClick
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.btn_ver) {
@@ -2083,17 +2083,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            Bitmap bitmap = ViewCapture.with(mWebviewPop).getBitmap();
+//                            Bitmap bitmap = ViewCapture.with(mWebviewPop).getBitmap();
                             Log.e("34343434", "run: create bitmap");
                             singleThreadExecutor.submit(new Runnable() {
                                 @Override
                                 public void run() {
                                     try {
-                                        int ret = printerService.printBitmap(bitmap, 1, 1);
-                                        showLog("Print bitmap: " + msg(ret));
-                                        if (ret == 0) {
+//                                        int ret = printerService.printBitmap(bitmap, 1, 1);
+//                                        showLog("Print bitmap: " + msg(ret));
+//                                        if (ret == 0) {
                                             paperOut();
-                                        }
+//                                        }
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                     }

@@ -5,12 +5,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface SingleClick {
-
-    /**
-     * 快速点击的间隔
-     */
-    long value() default 2000;
-}
+//@Retention(RetentionPolicy.RUNTIME)
+//@Target(ElementType.METHOD)
+//public @interface SingleClick {
+//
+//    /**
+//     * 快速点击的间隔
+//     */
+//    long value() default 2000;
+//}
