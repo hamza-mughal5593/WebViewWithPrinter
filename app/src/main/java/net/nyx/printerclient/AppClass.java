@@ -9,6 +9,8 @@ import android.os.PowerManager;
 import androidx.work.Configuration;
 import androidx.work.WorkManager;
 
+import com.google.firebase.FirebaseApp;
+
 import net.nyx.printerclient.WebviewMain.CacheClearScheduler;
 import net.nyx.printerclient.WebviewMain.adminApp.NotificationUtils;
 
@@ -20,6 +22,9 @@ public class AppClass extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        FirebaseApp.initializeApp(this);
+
+
         CacheClearScheduler.scheduleDailyCacheClearance(this);
         final IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
         onScreenOffReceiver = new BootReceiver();

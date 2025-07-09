@@ -4,6 +4,7 @@ package net.nyx.printerclient;
 import static net.nyx.printerclient.AppClass.isInBackground;
 import static net.nyx.printerclient.Result.msg;
 import static net.nyx.printerclient.WebviewMain.Config.ACTIVATE_PROGRESS_BAR;
+import static net.nyx.printerclient.WebviewMain.Config.BASE_URL_API;
 import static net.nyx.printerclient.WebviewMain.Config.ENABLE_PULL_REFRESH;
 import static net.nyx.printerclient.WebviewMain.Config.ENABLE_SWIPE_NAVIGATE;
 import static net.nyx.printerclient.WebviewMain.Config.ENABLE_ZOOM;
@@ -19,6 +20,7 @@ import static net.nyx.printerclient.WebviewMain.adminApp.NotificationUtils.media
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -98,7 +100,6 @@ import android.webkit.SslErrorHandler;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -121,22 +122,30 @@ import androidx.core.content.FileProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
-import androidx.work.WorkRequest;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.play.core.appupdate.AppUpdateInfo;
 import com.google.android.play.core.appupdate.AppUpdateManager;
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
 import com.google.android.play.core.install.model.AppUpdateType;
 import com.google.android.play.core.install.model.UpdateAvailability;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.hd.viewcapture.ViewCapture;
 //import com.hd.viewcapture.ViewCapture;
 
 import net.nyx.printerclient.WebviewMain.AlertManager;
 import net.nyx.printerclient.WebviewMain.Config;
 import net.nyx.printerclient.WebviewMain.MyForegroundService;
-import net.nyx.printerclient.WebviewMain.adminApp.RestartReceiver;
 import net.nyx.printerclient.WebviewMain.adminApp.WebViewRefreshWorker;
 //import net.nyx.printerclient.aop.SingleClick;
 import net.nyx.printerservice.print.IPrinterService;
@@ -156,8 +165,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -165,7 +176,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import timber.log.Timber;
-import androidx.work.ExistingPeriodicWorkPolicy;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -402,6 +415,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mediaPlayer = null; // Reset the MediaPlayer instance
         }
     }
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -570,7 +586,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         webView.setWebViewClient(new AdvanceWebViewClient());
         webView.getSettings().setSupportMultipleWindows(true);
         webView.getSettings().setUseWideViewPort(true);
-        webView.addJavascriptInterface(new WebAppInterface(), "Android");
+        webView.addJavascriptInterface(new WebAppInterface(), "RestaurantInterface");
         Context appContext = this;
 
         // Collect the App Name to use as the title for Javascript Dialogs
@@ -728,7 +744,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             }
         }
-
+//        Log.e("3434343", "onCreate: "+webSettings.getUserAgentString() );
         if (!Config.USER_AGENT.isEmpty()) {
             webSettings.setUserAgentString(Config.USER_AGENT);
         }
@@ -775,6 +791,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
 
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w("FCM", "Fetching FCM registration token failed", task.getException());
+                            return;
+                        }
+
+                        // Get new FCM registration token
+                        String token = task.getResult();
+                        fcm_token = token;
+                        Log.d("3434343", "Token: " + token);
+
+                        // Send token to server or store locally
+                    }
+                });
+
+
+
 
 
     }
@@ -788,8 +824,93 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Toast.makeText(MainActivity.this, "Loading stopped for this URL.", Toast.LENGTH_SHORT).show();
             });
         }
+
+        @JavascriptInterface
+        public void sendRestaurantData(String json) {
+            Log.d("3434343", "Received JSON: " + json);
+
+            // Parse if needed
+            try {
+                JSONObject jsonObject = new JSONObject(json);
+                String rest_id = jsonObject.getString("restaurantId");
+                send_token(rest_id);
+                Utils.saveString(MainActivity.this,"res_id",rest_id);
+
+                Log.e("3434343", "sendRestaurantData: "+rest_id );
+//                Toast.makeText(mContext, "Restaurant ID: " + id, Toast.LENGTH_SHORT).show();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
+    private String fcm_token = "";
+    private void send_token(String rest_id) {
+
+        Log.e("43543534", "rest_id"+rest_id +"\n fcmTokens"+fcm_token);
+        String url = BASE_URL_API + "restaurant/firbase-token";
+
+        // JSON payload
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("restaurant_id", rest_id);
+            payload.put("fcmTokens", fcm_token);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Log.e("43543534", "rest_id  "+payload );
+
+        // RequestQueue
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+
+        // JsonObjectRequest for POST
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
+                Request.Method.POST,
+                url,
+                payload,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        // Handle response
+                        Log.d("VolleyResponse", response.toString());
+
+//                        try {
+//                            boolean status = response.getBoolean("status");
+//
+//                            if (status) {
+//
+//                                Toast.makeText(MainActivity.this, "Token Send", Toast.LENGTH_SHORT).show();
+//                            } else {
+//                                Toast.makeText(MainActivity.this, "Token error", Toast.LENGTH_SHORT).show();
+//
+//
+//                            }
+
+//                        } catch (JSONException e) {
+//                            throw new RuntimeException(e);
+//                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // Handle error
+                        Log.e("VolleyError", error.toString());
+                        Toast.makeText(MainActivity.this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                // Optional: Add headers if needed
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                return headers;
+            }
+        };
+
+        // Add request to the queue
+        requestQueue.add(jsonObjectRequest);
+    }
     private IPrinterService printerService;
     private ServiceConnection connService = new ServiceConnection() {
         @Override
@@ -961,9 +1082,60 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 //        long triggerTime = System.currentTimeMillis() + 1000; // Restart after 5 seconds
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+
+
+        FirebaseCrashlytics.getInstance().log("App/service destroyed - might be killed by OS");
+        FirebaseCrashlytics.getInstance().recordException(
+                new Exception("App/service destroyed - might be killed by OS")
+        );
+
+        restartAppWithAlarm();
+
+    }
+    private void restartAppWithAlarm() {
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                getApplicationContext(),
+                12345,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + 2000, // restart after 2 seconds
+                    pendingIntent
+            );
+        }
     }
 
-//    @Override
+    @Override
+    public void onLowMemory() {
+
+
+        FirebaseCrashlytics.getInstance().log("App/service  - onLowMemory");
+        FirebaseCrashlytics.getInstance().recordException(
+                new Exception("App/service  onLowMemory")
+        );
+
+        super.onLowMemory();
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        FirebaseCrashlytics.getInstance().log("App/service  - onTrimMemory "+level);
+        FirebaseCrashlytics.getInstance().recordException(
+                new Exception("App/service  onTrimMemory "+level)
+        );
+
+        super.onTrimMemory(level);
+    }
+
+    //    @Override
 //    public boolean onCreateOptionsMenu(Menu menu) {
 //        getMenuInflater().inflate(R.menu.menu_main, menu);
 //        return super.onCreateOptionsMenu(menu);
@@ -2083,17 +2255,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-//                            Bitmap bitmap = ViewCapture.with(mWebviewPop).getBitmap();
+                            Bitmap bitmap = ViewCapture.with(mWebviewPop).getBitmap();
                             Log.e("34343434", "run: create bitmap");
                             singleThreadExecutor.submit(new Runnable() {
                                 @Override
                                 public void run() {
                                     try {
-//                                        int ret = printerService.printBitmap(bitmap, 1, 1);
-//                                        showLog("Print bitmap: " + msg(ret));
-//                                        if (ret == 0) {
+                                        int ret = printerService.printBitmap(bitmap, 1, 1);
+                                        showLog("Print bitmap: " + msg(ret));
+                                        if (ret == 0) {
                                             paperOut();
-//                                        }
+                                        }
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                     }

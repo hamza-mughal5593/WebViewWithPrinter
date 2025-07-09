@@ -7,13 +7,19 @@ import java.util.List;
 public class Config {
 
     public static final String HOST = "www.example.org";
+//    public static final String BASE_URL_API = "https://api-act.staging-dot-perkchops-010323.com/";
+
+
+    public static final String BASE_URL_API = "https://api.perkchops.com/";
+    public static String HOME_URL = "https://perkchopsdashboard.com/";
 
     // Your URL including https:// or http:// prefix and including www. or any required subdomain (e.g., "https://www.example.org")
 //    public static String HOME_URL = "https://dash-act.staging-dot-perkchops-010323.com";
 //    public static String HOME_URL = "https://dash-next.staging-dot-perkchops-010323.com";
 //    public static String HOME_URL = "https://dashboard.staging-dot-perkchops-010323.com";
-    public static String HOME_URL = "https://perkchopsdashboard.com/";
+
 //    public static String HOME_URL = "https://dash-next.staging-dot-perkchops-010323.com/";
+//    public static String HOME_URL = "https://dashboard.staging-dot-perkchops-010323.com/users/login";
 
     // Set to "false" to disable the progress spinner/loading spinner
     public static final boolean ACTIVATE_PROGRESS_BAR = true;
@@ -25,7 +31,7 @@ public class Config {
     public static final String TABLET_ORIENTATION = "portrait";
 
     // Set a customized UserAgent for WebView URL requests (or leave it empty to use the default Android UserAgent)
-    public static final String USER_AGENT = "";
+    public static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 12; sdk_gphone64_x86_64 Build/SE1A.211212.001.B1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/137.0.7151.89 Mobile Safari/537.36 isTablet=true";
 
     // Set to "true" if you want to extend URL request by the system language like ?webview_language=LANGUAGE CODE (e.g., ?webview_language=EN for English users)
     public static final boolean APPEND_LANG_CODE = false;

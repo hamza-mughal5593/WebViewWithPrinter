@@ -1,1 +1,4 @@
 include ':app'
+
+include ':viewcapture'
+project(':viewcapture').projectDir = file('viewcapture')

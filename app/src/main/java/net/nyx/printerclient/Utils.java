@@ -2,6 +2,8 @@ package net.nyx.printerclient;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
 
 /**
  * Created by yyzz on 2019/1/4.
@@ -18,7 +20,16 @@ public class Utils {
             sUtils = new Utils();
         return sUtils;
     }
-
+    public static void saveString(Context context, String key, String value) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(key, value);
+        editor.apply(); // or editor.commit();
+    }
+    public static String getString(Context context, String key) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+        return sharedPreferences.getString(key, ""); // default value is null if key doesn't exist
+    }
     public static Utils init(final Application app) {
         getInstance();
         if (sApplication == null) {

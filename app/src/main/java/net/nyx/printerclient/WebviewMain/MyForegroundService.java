@@ -1,5 +1,6 @@
 package net.nyx.printerclient.WebviewMain;
 
+import static androidx.core.app.NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE;
 import static net.nyx.printerclient.AppClass.isInBackground;
 
 import android.app.ActivityManager;
@@ -33,15 +34,19 @@ import net.nyx.printerclient.R;
 import net.nyx.printerclient.WebviewMain.adminApp.NotificationUtils;
 
 import java.util.concurrent.TimeUnit;
+import androidx.core.app.NotificationCompat;
+
 
 public class MyForegroundService extends Service {
     private final IBinder binder = new LocalBinder();
+
     public class LocalBinder extends Binder {
         public MyForegroundService getService() {
             // Return this instance of MyService so clients can call public methods
             return MyForegroundService.this;
         }
     }
+
     private static final String CHANNEL_ID = "ForegroundServiceChannel";
 
     @Override
@@ -79,7 +84,7 @@ public class MyForegroundService extends Service {
         NotificationUtils.showReopenNotification(getApplicationContext());
     }
 
-//    @Override
+    //    @Override
 //    public void onTrimMemory(int level) {
 //        Intent serviceIntent = new Intent(this, MyForegroundService.class);
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -87,6 +92,17 @@ public class MyForegroundService extends Service {
 //        }
 //        NotificationUtils.showReopenNotification(getApplicationContext());
 //    }
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Intent restartService = new Intent(getApplicationContext(), MyForegroundService.class);
+        restartService.setPackage(getPackageName());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getApplicationContext().startForegroundService(restartService);
+        } else {
+            getApplicationContext().startService(restartService);
+        }
+        super.onTaskRemoved(rootIntent);
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -98,19 +114,22 @@ public class MyForegroundService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Perkchops")
                 .setContentText("Running...")
+                .setOngoing(true)
                 .setSmallIcon(R.drawable.app_icon)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setForegroundServiceBehavior(FOREGROUND_SERVICE_IMMEDIATE)
                 .setContentIntent(pendingIntent)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .build();
 
         startForeground(1, notification);
-
 
 
         new Thread(() -> {
             while (true) {
                 // Check if your app's main activity is running
                 if (!isAppRunning() && !isOverlayVisible) {
-                    Log.e("345452", "isAppRunning: false" );
+                    Log.e("345452", "isAppRunning: false");
 
 //                    if (isInBackground){
 //                        handler.post(this::showOverlay);
@@ -118,8 +137,8 @@ public class MyForegroundService extends Service {
 
 //                    restartApp();
 //                    scheduleAppReopen(notification);
-                }else {
-                    Log.e("345452", "isAppRunning: true" );
+                } else {
+                    Log.e("345452", "isAppRunning: true");
                 }
                 try {
                     Thread.sleep(10000); // Check every 5 seconds
@@ -130,15 +149,16 @@ public class MyForegroundService extends Service {
         }).start();
 
 
-
         return START_STICKY;
     }
+
     private Handler handler = new Handler(Looper.getMainLooper()); // Handler to run on the main thread
 
     private boolean isOverlayVisible = false; // Flag to track overlay visibility
 
     private WindowManager windowManager;
     private View overlayView;
+
     private void showOverlay() {
         if (Settings.canDrawOverlays(this)) {
             isOverlayVisible = true;
@@ -173,6 +193,7 @@ public class MyForegroundService extends Service {
             Toast.makeText(this, "Permission Required", Toast.LENGTH_SHORT).show();
         }
     }
+
     private MediaPlayer mediaPlayer; // Declare MediaPlayer as a class-level variable
 
     public void playBeep() {
@@ -207,6 +228,7 @@ public class MyForegroundService extends Service {
             mediaPlayer = null; // Reset the MediaPlayer instance
         }
     }
+
     private void removeOverlay() {
         stopBeep();
         if (windowManager != null && overlayView != null) {
@@ -214,6 +236,7 @@ public class MyForegroundService extends Service {
             isOverlayVisible = false; // Allow the loop to check again
         }
     }
+
     private void restartApp() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -232,7 +255,7 @@ public class MyForegroundService extends Service {
     }
 
     private void restartApp1() {
-        Log.e("345452", "restart app: code" );
+        Log.e("345452", "restart app: code");
 //        Intent intent = new Intent(this, MainActivity.class);
 //        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 //        startActivity(intent);
@@ -243,7 +266,6 @@ public class MyForegroundService extends Service {
 //        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 //        long triggerTime = System.currentTimeMillis() + 1000; // Start after 1 second
 //        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
-
 
 
 //        // Create an Intent to launch MainActivity
@@ -283,6 +305,7 @@ public class MyForegroundService extends Service {
 
 
     }
+
     @Override
     public IBinder onBind(Intent intent) {
         return binder;

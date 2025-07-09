@@ -4,8 +4,14 @@ buildscript {
     repositories {
         google()
         jcenter()
+        mavenCentral()
         maven { url 'https://plugins.gradle.org/m2/' }
         maven { url 'https://jitpack.io' }
+
+//        maven {
+//            url 'https://unity3ddist.jfrog.io/artifactory/unity-mediation-mvn-prod-local/'
+//        }
+
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.7.0'
@@ -20,9 +26,13 @@ allprojects {
     repositories {
         google()
         jcenter()
+        mavenCentral()
         maven { url 'https://jitpack.io' }
         maven { url 'https://maven.google.com' }
         maven { url "https://jcenter.bintray.com" }
+//        maven {
+//            url 'https://unity3ddist.jfrog.io/artifactory/unity-mediation-mvn-prod-local/'
+//        }
     }
 
     tasks.withType(JavaCompile) {
